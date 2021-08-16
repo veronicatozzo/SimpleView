@@ -50,7 +50,7 @@ class Pointnet2MSG(nn.Module):
             Whether or not to use the xyz position of a point as a feature
     """
 
-    def __init__(self, num_classes, input_channels=3, use_xyz=True, version=1.0):
+    def __init__(self, num_classes, input_channels=3, use_xyz=True, version=1.0, block_norm="none", block_connect="none"):
         super(Pointnet2MSG, self).__init__()
 
         self.SA_modules = nn.ModuleList()
@@ -65,6 +65,8 @@ class Pointnet2MSG(nn.Module):
                     [input_channels, 64, 96, 128],
                 ],
                 use_xyz=use_xyz,
+                bn=block_norm,
+                block_connect=block_connect,
             )
         )
 
@@ -80,10 +82,13 @@ class Pointnet2MSG(nn.Module):
                     [input_channels, 128, 128, 256],
                 ],
                 use_xyz=use_xyz,
+                bn=block_norm,
+                block_connect=block_connect,
             )
         )
         self.SA_modules.append(
-            PointnetSAModule(mlp=[128 + 256 + 256, 256, 512, 1024], use_xyz=use_xyz)
+            PointnetSAModule(mlp=[128 + 256 + 256, 256, 512, 1024], use_xyz=use_xyz, bn=block_norm,
+                block_connect=block_connect)
         )
 
         if version == 1.0:

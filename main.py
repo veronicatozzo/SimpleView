@@ -291,6 +291,8 @@ def get_model(cfg):
         model = models.PointNet2(
             task=cfg.EXP.TASK,
             dataset=cfg.EXP.DATASET,
+            block_norm=cfg.EXP.BLOCK_NORM,
+            block_connect=cfg.EXP.BLOCK_CONNECT,
             **cfg.MODEL.PN2)
     elif cfg.EXP.MODEL_NAME == 'dgcnn':
         model = models.DGCNN(

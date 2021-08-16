@@ -5,12 +5,13 @@ from all_utils import DATASET_NUM_CLASS
 
 class PointNet2(nn.Module):
 
-    def __init__(self, task, dataset, version_cls):
+    def __init__(self, task, dataset, version_cls, block_norm="none", block_connect="none"):
         super().__init__()
         self.task =  task
         num_class = DATASET_NUM_CLASS[dataset]
         if task == 'cls':
-            self.model = Pointnet2MSG(num_classes=num_class, input_channels=0, use_xyz=True, version=version_cls)
+            self.model = Pointnet2MSG(num_classes=num_class, input_channels=0, use_xyz=True, version=version_cls,
+                                     block_norm=block_norm, block_connect=block_connect)
         else:
             assert False
 

@@ -5,10 +5,12 @@ from __future__ import (
     print_function,
     unicode_literals,
 )
+import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import etw_pytorch_utils as pt_utils
+from etw_pytorch_utils import * 
 
 from pointnet2.utils import pointnet2_utils
 
@@ -16,7 +18,98 @@ if False:
     # Workaround for type hints without depending on the `typing` module
     from typing import *
 
+    
+    
 
+        
+
+
+
+
+        
+class SharedMLP(nn.Sequential):
+
+    def __init__(self,
+                 args,
+                 bn = False,
+                 activation=nn.ReLU(inplace=True),
+                 preact = False,
+                 first = False,
+                 name = ""):
+        # type: (SharedMLP, List[int], bool, Any, bool, bool, AnyStr) -> None
+        super(SharedMLP, self).__init__()
+
+        for i in range(len(args) - 1):
+            self.add_module(
+                name + 'layer{}'.format(i),
+                Conv2d(
+                    args[i],
+                    args[i + 1],
+                    bn=(not first or not preact or (i != 0)) and bn,
+                    activation=activation if (not first or not preact or
+                                              (i != 0)) else None,
+                    preact=preact))
+
+            
+class MLP(nn.Module):
+    def __init__(self, in_features, out_features, block_connect="none", block_norm="none", activation=nn.ReLU(inplace=True), sample_size=None, preact=True,  kernel_size = (1, 1),stride = (1, 1),  padding = (0, 0),  dilation = (1, 1),bias = True):
+        super(MLP, self).__init__()
+        bias = bias and (block_norm=="none")
+        self.fc = torch.nn.Conv2d(
+                in_features,
+                out_features,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                dilation=dilation,
+                bias=bias)
+      
+        nn.init.kaiming_normal_(self.fc.weight)
+        if bias:
+            nn.init.constant_(self.fc.bias, 0)
+        if activation is not None:
+            self.activation = activation
+        self.norm = pointnet2_utils.get_norm(block_norm, sample_size=sample_size, dim_V=out_features)
+  
+        self.block_connect = block_connect
+        self.preact = preact
+
+
+    def forward(self, X):
+        ## input [B, C, npoints, nsamples] 
+        B, C, npoints, nsamples = X.shape
+        O = self.fc(X)
+        O = O.permute(0, 2, 3, 1)
+        O = torch.flatten(O, start_dim=1, end_dim=2)
+        C = O.shape[-1]
+        O = O if getattr(self, 'norm', None) is None else self.norm(O)
+        O = self.activation(O)
+        O = pointnet2_utils.connect(X, O, self.block_connect)
+        O = torch.transpose(O, 2, 1).contiguous()
+        O = O.reshape(B, C, npoints, nsamples)
+        return O
+    
+    
+    
+class SeqMLP(nn.Sequential):
+    # we get an input which is [B, C, npoints, nsamples] 
+    # we want an input which is [B, npoints, nsamples, C]
+    def __init__(self, sample_size, n_dims, block_connect="none", block_norm="none",  
+                 activation=nn.ReLU(inplace=True), preact=True,
+                 first=False, name = ""):
+        super(SeqMLP, self).__init__()
+        for i in range(len(n_dims)-1):
+            self.add_module(
+                name + 'layer{}'.format(i),
+                MLP(in_features=n_dims[i], out_features=n_dims[i+1], block_connect=block_connect,
+                    block_norm=block_norm, 
+                    activation=activation, 
+                    sample_size=sample_size, preact=preact)
+                            )
+                  
+        
+    
+    
 class _PointnetSAModuleBase(nn.Module):
     def __init__(self):
         super(_PointnetSAModuleBase, self).__init__()
@@ -59,7 +152,7 @@ class _PointnetSAModuleBase(nn.Module):
             new_features = self.groupers[i](
                 xyz, new_xyz, features
             )  # (B, C, npoint, nsample)
-
+            
             new_features = self.mlps[i](new_features)  # (B, mlp[-1], npoint, nsample)
             new_features = F.max_pool2d(
                 new_features, kernel_size=[1, new_features.size(3)]
@@ -67,7 +160,7 @@ class _PointnetSAModuleBase(nn.Module):
             new_features = new_features.squeeze(-1)  # (B, mlp[-1], npoint)
 
             new_features_list.append(new_features)
-
+        
         return new_xyz, torch.cat(new_features_list, dim=1)
 
 
@@ -87,8 +180,10 @@ class PointnetSAModuleMSG(_PointnetSAModuleBase):
     bn : bool
         Use batchnorm
     """
-
-    def __init__(self, npoint, radii, nsamples, mlps, bn=True, use_xyz=True):
+    
+    
+#     def __init__(self, npoint, radii, nsamples, mlps, bn=True, use_xyz=True):  #as it was
+    def __init__(self, npoint, radii, nsamples, mlps, bn="fn", block_connect="none",use_xyz=True):
         # type: (PointnetSAModuleMSG, int, List[float], List[int], List[List[int]], bool, bool) -> None
         super(PointnetSAModuleMSG, self).__init__()
 
@@ -108,8 +203,8 @@ class PointnetSAModuleMSG(_PointnetSAModuleBase):
             mlp_spec = mlps[i]
             if use_xyz:
                 mlp_spec[0] += 3
-
-            self.mlps.append(pt_utils.SharedMLP(mlp_spec, bn=bn))
+#             self.mlps.append(SharedMLP(mlp_spec, bn=bn)) # AS IT WAS
+            self.mlps.append(SeqMLP(sample_size=nsamples, n_dims=mlp_spec, block_norm=bn, block_connect=block_connect))
 
 
 class PointnetSAModule(PointnetSAModuleMSG):
@@ -128,10 +223,11 @@ class PointnetSAModule(PointnetSAModuleMSG):
     bn : bool
         Use batchnorm
     """
-
-    def __init__(
-        self, mlp, npoint=None, radius=None, nsample=None, bn=True, use_xyz=True
-    ):
+  
+#     def __init__( #AS IT WAS
+#         self, mlp, npoint=None, radius=None, nsample=None, bn=True, use_xyz=True
+#     ):
+    def __init__(self, mlp, npoint=None, radius=None, nsample=None, bn="fn", block_connect="none",use_xyz=True):
         # type: (PointnetSAModule, List[int], int, float, int, bool, bool) -> None
         super(PointnetSAModule, self).__init__(
             mlps=[mlp],
@@ -140,6 +236,7 @@ class PointnetSAModule(PointnetSAModuleMSG):
             nsamples=[nsample],
             bn=bn,
             use_xyz=use_xyz,
+            block_connect=block_connect
         )
 
 
@@ -232,3 +329,5 @@ if __name__ == "__main__":
         new_features.backward(torch.cuda.FloatTensor(*new_features.size()).fill_(1))
         print(new_features)
         print(xyz.grad)
+
+

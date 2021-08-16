@@ -13,6 +13,8 @@ _C.EXP.MODEL_NAME = 'mv'
 _C.EXP.LOSS_NAME = 'cross_entropy'
 _C.EXP.OPTIMIZER = 'vanilla'
 _C.EXP.METRIC = 'acc'
+_C.EXP.BLOCK_NORM = 'none'
+_C.EXP.BLOCK_CONNECT = 'none'
 #------------------------------------------------------------------------------
 # Extra Experiment Parameters
 #------------------------------------------------------------------------------

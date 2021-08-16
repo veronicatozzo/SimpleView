@@ -1,5 +1,5 @@
 DATALOADER:
-  batch_size: 32
+  batch_size: 8
   num_workers: 0
 EXP:
   DATASET: modelnet40_dgcnn
@@ -8,5 +8,7 @@ EXP:
   MODEL_NAME: pointnet2
   SEED: 1
   TASK: cls
+  BLOCK_NORM: fn
+  BLOCK_CONNECT: none
 TRAIN:
   l2: 0.0
