@@ -19,7 +19,7 @@ _C.EXP.BLOCK_CONNECT = 'none'
 # Extra Experiment Parameters
 #------------------------------------------------------------------------------
 _C.EXP_EXTRA = CN()
-_C.EXP_EXTRA.no_val = True
+_C.EXP_EXTRA.no_val = False
 _C.EXP_EXTRA.no_test = False
 _C.EXP_EXTRA.val_eval_freq = 1
 _C.EXP_EXTRA.test_eval_freq = 1

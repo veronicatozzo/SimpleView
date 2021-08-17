@@ -171,9 +171,12 @@ def validate(task, loader, model, dataset_name):
     return perf.agg()
 
 
-def train(task, loader, model, optimizer, loss_name, dataset_name):
+def train(task, loader, model, optimizer, loss_name, dataset_name, use_wandb, step):
     model.train()
-
+    
+    if use_wandb:
+        import wandb
+        
     def get_extra_param():
        return None
 
@@ -183,6 +186,7 @@ def train(task, loader, model, optimizer, loss_name, dataset_name):
     time_data_loading = 0
 
     time3  = time()
+    print(len(loader))
     for i, data_batch in enumerate(loader):
         time1 = time()
 
@@ -214,18 +218,21 @@ def train(task, loader, model, optimizer, loss_name, dataset_name):
                 print("WARNING: avoiding step as bad gradient")
             else:
                 optimizer.step()
-
+        
         time_data_loading += (time1 - time3)
         time_forward += (time2 - time1)
         time3 = time()
         time_backward += (time3 - time2)
-
+        
+        if use_wandb:
+            wandb.log({"Pointcloud train loss per step": loss.detach().cpu().numpy()}, step=step)
+        step +=1
         if i % 50 == 0:
             print(
                 f"[{i}/{len(loader)}] avg_loss: {perf.agg_loss()}, FW time = {round(time_forward, 2)}, "
                 f"BW time = {round(time_backward, 2)}, DL time = {round(time_data_loading, 2)}")
 
-    return perf.agg(), perf.agg_loss()
+    return perf.agg(), perf.agg_loss(), step
 
 
 def save_checkpoint(id, epoch, model, optimizer,  lr_sched, bnm_sched, test_perf, cfg):
@@ -337,7 +344,7 @@ def get_optimizer(optim_name, tr_arg, model):
     return optimizer, lr_sched, bnm_sched
 
 
-def entry_train(cfg, resume=False, model_path=""):
+def entry_train(cfg, resume=False, model_path="", use_wandb=False):
     loader_train = create_dataloader(split='train', cfg=cfg)
     loader_valid = create_dataloader(split='valid', cfg=cfg)
     loader_test  = create_dataloader(split='test',  cfg=cfg)
@@ -361,12 +368,13 @@ def entry_train(cfg, resume=False, model_path=""):
         os.makedirs(log_dir)
     tb = TensorboardManager(log_dir)
     track_train = TrackTrain(early_stop_patience=cfg.TRAIN.early_stop)
-
+    
+    step = 0
     for epoch in range(cfg.TRAIN.num_epochs):
         print(f'Epoch {epoch}')
 
         print('Training..')
-        train_perf, train_loss = train(cfg.EXP.TASK, loader_train, model, optimizer, cfg.EXP.LOSS_NAME, cfg.EXP.DATASET)
+        train_perf, train_loss, step = train(cfg.EXP.TASK, loader_train, model, optimizer, cfg.EXP.LOSS_NAME, cfg.EXP.DATASET, use_wandb, step)
         pprint.pprint(train_perf, width=80)
         tb.update('train', epoch, train_perf)
 
@@ -391,7 +399,14 @@ def entry_train(cfg, resume=False, model_path=""):
             train_metric=get_metric_from_perf(cfg.EXP.TASK, train_perf, cfg.EXP.METRIC),
             val_metric=get_metric_from_perf(cfg.EXP.TASK, val_perf, cfg.EXP.METRIC),
             test_metric=get_metric_from_perf(cfg.EXP.TASK, test_perf, cfg.EXP.METRIC))
-
+        
+        if use_wandb:
+            wandb.log({"Pointcloud accuracy train per epoch": get_metric_from_perf(cfg.EXP.TASK, train_perf, cfg.EXP.METRIC)}, step=step)
+            wandb.log({"Pointcloud accuracy valid per epoch": get_metric_from_perf(cfg.EXP.TASK, val_perf, cfg.EXP.METRIC)}, step=step)
+            wandb.log({"Pointcloud accuracy test per epoch": get_metric_from_perf(cfg.EXP.TASK, test_perf, cfg.EXP.METRIC)}, step=step)
+        step +=1
+        
+        
         if (not cfg.EXP_EXTRA.no_val) and track_train.save_model(epoch_id=epoch, split='val'):
             print('Saving best model on the validation set')
             save_checkpoint('best_val', epoch, model, optimizer,  lr_sched, bnm_sched, test_perf, cfg)
@@ -423,7 +438,7 @@ def entry_train(cfg, resume=False, model_path=""):
     tb.close()
 
 
-def entry_test(cfg, test_or_valid, model_path=""):
+def entry_test(cfg, test_or_valid, model_path="", use_wandb=False):
     split = "test" if test_or_valid else "valid"
     loader_test = create_dataloader(split=split, cfg=cfg)
 
@@ -493,9 +508,17 @@ if __name__ == '__main__':
     parser.add_argument('--entry', type=str, default="train")
     parser.add_argument('--exp-config', type=str, default="")
     parser.add_argument('--model-path', type=str, default="")
+    parser.add_argument('--run_name', type=str, default="")
     parser.add_argument('--resume', action="store_true", default=False)
-
+    parser.add_argument('--use_wandb', action="store_true", default=False)
+    
+  
+        
     cmd_args = parser.parse_args()
+    
+    if cmd_args.use_wandb:
+        import wandb
+        wandb.init(project='pointnet', name=cmd_args.run_name)
 
     if cmd_args.entry == "train":
         assert not cmd_args.exp_config == ""
@@ -513,7 +536,7 @@ if __name__ == '__main__':
         np.random.seed(cfg.EXP.SEED)
         torch.manual_seed(cfg.EXP.SEED)
 
-        entry_train(cfg, cmd_args.resume, cmd_args.model_path)
+        entry_train(cfg, cmd_args.resume, cmd_args.model_path, cmd_args.use_wandb)
 
     elif cmd_args.entry in ["test", "valid"]:
         assert not cmd_args.exp_config == ""
@@ -529,7 +552,7 @@ if __name__ == '__main__':
         torch.manual_seed(cfg.EXP.SEED)
 
         test_or_valid = cmd_args.entry == "test"
-        entry_test(cfg, test_or_valid, cmd_args.model_path)
+        entry_test(cfg, test_or_valid, cmd_args.model_path, cmd_args.use_wandb)
 
     elif cmd_args.entry in ["rscnn_vote", "pn2_vote"]:
         assert not cmd_args.exp_config == ""
