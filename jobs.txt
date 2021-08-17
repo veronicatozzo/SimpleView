@@ -1,0 +1,11 @@
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_ln_run_1.yaml --use_wandb --run_name ln
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_bsn_run_1.yaml --use_wandb --run_name bsn
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_fn_run_1.yaml --use_wandb --run_name fn
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_fn1_run_1.yaml --use_wandb --run_name fn1
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_bn_run_1.yaml --use_wandb --run_name bn
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_ln1_run_1.yaml --use_wandb --run_name ln1
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_ln1noparams_run_1.yaml --use_wandb --run_name ln1noparams
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_fn1noparams_run_1.yaml --use_wandb --run_name fn1noparams
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_lnnoparams_run_1.yaml --use_wandb --run_name lnnoparams
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_bnnoparams_run_1.yaml --use_wandb --run_name bnnoparams
+/misc/vlgscratch5/RanganathGroup/lily/miniconda3/envs/simpleview/bin/python main.py --exp-config configs/dgcnn_pointnet2_sfnnoparams_run_1.yaml --use_wandb --run_name sfnnoparams
