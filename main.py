@@ -309,6 +309,19 @@ def get_model(cfg):
         model = models.PointNet(
             task=cfg.EXP.TASK,
             dataset=cfg.EXP.DATASET)
+    elif cfg.EXP.MODEL_NAME == 'deepsets_ours':
+        model = models.DeepSetsOurs(task=cfg.EXP.TASK,
+            dataset=cfg.EXP.DATASET,
+            block_norm=cfg.EXP.BLOCK_NORM,
+            block_connect=cfg.EXP.BLOCK_CONNECT,
+            pipeline=cfg.EXP.PIPELINE,
+            n_enc_layers=cfg.EXP.N_ENC_LAYERS,
+            n_dec_layers=cfg.EXP.N_DEC_LAYERS,
+            dim_hidden=cfg.EXP.DIM_HIDDEN)
+    elif cfg.EXP.MODEL_NAME == 'deepsets':
+        model = models.DeepSets()
+    elif cfg.EXP.MODEL_NAME == 'settransformer':
+        model = models.SetTransformer()
     else:
         assert False
 

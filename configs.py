@@ -15,6 +15,10 @@ _C.EXP.OPTIMIZER = 'vanilla'
 _C.EXP.METRIC = 'acc'
 _C.EXP.BLOCK_NORM = 'none'
 _C.EXP.BLOCK_CONNECT = 'none'
+_C.EXP.PIPELINE = 'resnet'
+_C.EXP.N_ENC_LAYERS = 50
+_C.EXP.N_DEC_LAYERS = 3
+_C.EXP.DIM_HIDDEN = 128
 #------------------------------------------------------------------------------
 # Extra Experiment Parameters
 #------------------------------------------------------------------------------

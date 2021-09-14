@@ -104,7 +104,7 @@ class SeqMLP(nn.Sequential):
                 MLP(in_features=n_dims[i], out_features=n_dims[i+1], block_connect=block_connect,
                     block_norm=block_norm, 
                     activation=activation, 
-                    sample_size=sample_size, preact=preact)
+                    sample_size=sample_size, preact=preact) # hard coded number of samples
                             )
                   
         
@@ -204,7 +204,7 @@ class PointnetSAModuleMSG(_PointnetSAModuleBase):
             if use_xyz:
                 mlp_spec[0] += 3
 #             self.mlps.append(SharedMLP(mlp_spec, bn=bn)) # AS IT WAS
-            self.mlps.append(SeqMLP(sample_size=nsamples, n_dims=mlp_spec, block_norm=bn, block_connect=block_connect))
+            self.mlps.append(SeqMLP(sample_size=nsample*npoint if npoint is not None else nsample, n_dims=mlp_spec, block_norm=bn, block_connect=block_connect))
 
 
 class PointnetSAModule(PointnetSAModuleMSG):

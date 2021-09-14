@@ -193,8 +193,8 @@ class BatchFeatureNorm(pt_utils.BatchNorm1d):
 
 
 
-class BatchFeatureNorm1(pt_utils.BatchNorm1d):
-    def forward(self, x):
+class BatchFeatureNorm1(nn.BatchNorm1d):
+     def forward(self, x):
         # [batch, features] after aggregation, [batch, samples, features] otherwise
         orig_dim = x.dim()
         orig_shape = x.shape
@@ -232,13 +232,13 @@ def get_norm(block_norm, sample_size, dim_V):
         return BatchSetNorm(1)
     # per set, per sample over the features
     elif block_norm == "ln":
-        return nn.LayerNorm(dim_V, elementwise_affine=False)
+        return nn.LayerNorm(dim_V)
     elif block_norm == "fn":
         return BatchFeatureNorm(dim_V)
     elif block_norm == "fn1":
         return BatchFeatureNorm1(dim_V)
     elif block_norm == "bn":
-        return nn.BatchNorm1d(sample_size)
+        return pt_utils.BatchNorm1d(sample_size)
     # TODO: only works for fixed sets
     # implementing per set layer norm over samples and features is tricky since it needs to take variable length sets into account 
     elif block_norm == "ln1":

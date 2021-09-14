@@ -21,6 +21,5 @@ class PointNet(nn.Module):
             logit, _, trans_feat = self.model(pc)
         else:
             assert False
-
         out = {'logit': logit, 'trans_feat': trans_feat}
         return out

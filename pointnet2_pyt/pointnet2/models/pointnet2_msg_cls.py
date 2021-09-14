@@ -87,7 +87,7 @@ class Pointnet2MSG(nn.Module):
             )
         )
         self.SA_modules.append(
-            PointnetSAModule(mlp=[128 + 256 + 256, 256, 512, 1024], use_xyz=use_xyz, bn=block_norm,
+            PointnetSAModule(nsample=128, mlp=[128 + 256 + 256, 256, 512, 1024], use_xyz=use_xyz, bn=block_norm,
                 block_connect=block_connect)
         )
 
