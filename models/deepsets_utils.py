@@ -55,6 +55,16 @@ class ReLUNoStats(nn.ReLU):
         x = super().forward(x[:, :, :-2])
         x = torch.cat([x, stats], axis=2)
         return x 
+
+class TanhNoStats(nn.Tanh):
+    def __init__(self):
+        super(ReLUNoStats, self).__init__()
+   
+    def forward(self, x):
+        stats = x[:, :, -2:]
+        x = super().forward(x[:, :, :-2])
+        x = torch.cat([x, stats], axis=2)
+        return x 
     
 class MySequential(nn.Sequential):
     def forward(self, *inputs):
